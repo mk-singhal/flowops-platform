@@ -1,0 +1,19 @@
+/* Menu item text */
+.flowops-sidebar .MuiTypography-root {
+  color: #E5E7EB !important;
+}
+
+/* Menu item icons */
+.flowops-sidebar svg {
+  color: #E5E7EB !important;
+}
+
+/* Hover */
+.flowops-sidebar li:hover {
+  background-color: #132F4C !important;
+}
+
+/* Active item (if supported by lib) */
+.flowops-sidebar .active {
+  background-color: #1976D2 !important;
+}
