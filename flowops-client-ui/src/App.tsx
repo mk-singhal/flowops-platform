@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AppSidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
-import Employees from "./pages/Employee";
+import Orders from "./pages/Orders";
+import Inventory from "./pages/Inventory";
 
 const App = () => {
   return (
@@ -9,7 +10,8 @@ const App = () => {
       <AppSidebar>
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/employees" element={<Employees />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/inventory" element={<Inventory />} />
         </Routes>
       </AppSidebar>
     </BrowserRouter>
