@@ -2,9 +2,12 @@ import { createTheme } from "@mui/material/styles";
 
 const theme = createTheme({
   palette: {
-    mode: "light", // 🔁 change to "dark" if you want full dark UI
+    mode: "light",
     background: {
       default: "#f4f6f8",
+    },
+    primary: {
+      main: "#1976d2", // sidebar color
     },
   },
 });

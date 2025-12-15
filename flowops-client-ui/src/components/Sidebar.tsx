@@ -11,9 +11,10 @@ import {
 import { useTheme } from "@mui/material/styles";
 
 import MenuIcon from "@mui/icons-material/Menu";
-import AccessAlarms from "@mui/icons-material/AccessAlarms";
-import CottageOutlinedIcon from "@mui/icons-material/CottageOutlined";
 import FlowOpsLogo from "../assets/logo-transparent-sm.png";
+import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
+import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 
 import { Sidebar, Menu, MenuItem } from "react-mui-sidebar";
 import "./Sidebar.css";
@@ -22,13 +23,13 @@ const SidebarContent = () => (
   <>
     <Toolbar />
     <Menu subHeading="">
-      <MenuItem icon={<CottageOutlinedIcon />} component={Link} link="/">
+      <MenuItem icon={<DashboardOutlinedIcon />} component={Link} link="/">
         Dashboard
       </MenuItem>
-      <MenuItem icon={<AccessAlarms />} component={Link} link="/orders">
+      <MenuItem icon={<ShoppingBagOutlinedIcon />} component={Link} link="/orders">
         Orders
       </MenuItem>
-      <MenuItem icon={<AccessAlarms />} component={Link} link="/inventory">
+      <MenuItem icon={<Inventory2OutlinedIcon />} component={Link} link="/inventory">
         Inventory
       </MenuItem>
     </Menu>
