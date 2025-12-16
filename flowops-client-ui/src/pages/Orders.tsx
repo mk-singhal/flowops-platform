@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import CreateOrder from "../components/CreateOrder";
+import CreateOrder from "../components/OrderDialog";
 
 type Order = {
   id: string;
@@ -131,7 +131,12 @@ const Orders = () => {
                   />
                 </TableCell>
                 <TableCell>{order.date}</TableCell>
-                <TableCell>{order.amount}</TableCell>
+                <TableCell>
+                  ₹
+                  {order?.items
+                    ?.reduce((acc, item) => acc + item.price * item.qty, 0)
+                    .toFixed(2)}
+                </TableCell>
                 <TableCell>
                   <IconButton
                     aria-label="edit-order"

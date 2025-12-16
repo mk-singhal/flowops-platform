@@ -54,11 +54,16 @@ const CreateOrder = ({
     }
   }, [mode, initialData]);
 
+  const totalAmount = items.reduce(
+    (acc, item) => acc + item.qty * item.price,
+    0
+  );
+
   const handleClose = () => {
     onClose();
     setCustomer("");
-		setAddress("");
-		setItems([{ sku: "", qty: 1, price: 0 }]);
+    setAddress("");
+    setItems([{ sku: "", qty: 1, price: 0 }]);
   };
 
   const handleAddItem = () => {
@@ -198,7 +203,9 @@ const CreateOrder = ({
                         required
                         error={item.price < 0}
                         helperText={
-                          item.price < 0 ? "Price must be greater than or equal to 0" : ""
+                          item.price < 0
+                            ? "Price must be greater than or equal to 0"
+                            : ""
                         }
                         slotProps={{
                           htmlInput: {
@@ -231,6 +238,18 @@ const CreateOrder = ({
             >
               Add Item
             </Button>
+          </Stack>
+          <Stack direction="row" justifyContent="flex-end" mt={2}>
+            <TextField
+              label="Total Amount"
+              value={totalAmount.toFixed(2)}
+              variant="standard"
+              slotProps={{
+                htmlInput: {
+                  readOnly: true
+                },
+              }}
+            />
           </Stack>
         </form>
       </DialogContent>
