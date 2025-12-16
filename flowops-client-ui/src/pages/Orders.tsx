@@ -15,49 +15,47 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import CreateOrder from "../components/OrderDialog";
+import type { Order } from "@/types";
 
-type Order = {
-  id: string;
-  customer: string;
-  address: string;
-  status: string;
-  date: string;
-  amount: number | null;
-  items: {
-    sku: string;
-    qty: number;
-    price: number;
-  }[];
+const initialOrders: Order[] = [
+  {
+    id: "ORD-001",
+    customer: "Rahul Sharma",
+    address: "Delhi, India",
+    status: "Pending",
+    date: "23/01/2025",
+    amount: 0,
+    items: [
+      { sku: "SKU-101", qty: 2, price: 500 },
+      { sku: "SKU-102", qty: 1, price: 1400 },
+    ],
+  },
+  {
+    id: "ORD-002",
+    customer: "Ananya Gupta",
+    address: "Mumbai, India",
+    status: "Completed",
+    date: "23/01/2025",
+    amount: 0,
+    items: [{ sku: "SKU-103", qty: 1, price: 1200 }],
+  },
+];
+
+const generateOrderId = (orders: Order[]) => {
+  const maxId = orders.reduce((max, order) => {
+    const num = Number(order.id.replace("ORD-", ""));
+    return Math.max(max, num);
+  }, 0);
+
+  return `ORD-${String(maxId + 1).padStart(3, "0")}`;
 };
 
 const Orders = () => {
+  const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [openCreateOrder, setOpenCreateOrder] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-
-  const orders: Order[] = [
-    {
-      id: "ORD-001",
-      customer: "Rahul Sharma",
-      address: "Delhi, India",
-      status: "Pending",
-      date: "23-01-2025",
-      amount: null,
-      items: [
-        { sku: "SKU-101", qty: 2, price: 500 },
-        { sku: "SKU-102", qty: 1, price: 1400 },
-      ],
-    },
-    {
-      id: "ORD-002",
-      customer: "Ananya Gupta",
-      address: "Mumbai, India",
-      status: "Completed",
-      date: "23-01-2025",
-      amount: null,
-      items: [{ sku: "SKU-103", qty: 1, price: 1200 }],
-    },
-  ];
 
   const handleEditOrder = (order: Order) => {
     setSelectedOrder(order);
@@ -138,13 +136,34 @@ const Orders = () => {
                     .toFixed(2)}
                 </TableCell>
                 <TableCell>
-                  <IconButton
-                    aria-label="edit-order"
-                    size="small"
-                    onClick={() => handleEditOrder(order)}
-                  >
-                    <EditOutlinedIcon fontSize="inherit" />
-                  </IconButton>
+                  {order.status === "Pending" && (
+                    <>
+                      <IconButton
+                        aria-label="edit-order"
+                        size="small"
+                        onClick={() => handleEditOrder(order)}
+                      >
+                        <EditOutlinedIcon fontSize="inherit" />
+                      </IconButton>
+
+                      <IconButton
+                        aria-label="cancel-order"
+                        size="small"
+                        color="error"
+                        onClick={() =>
+                          setOrders((prev) =>
+                            prev.map((o) =>
+                              o.id === order.id
+                                ? { ...o, status: "Cancelled" }
+                                : o
+                            )
+                          )
+                        }
+                      >
+                        <HighlightOffIcon fontSize="inherit" />
+                      </IconButton>
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -160,6 +179,18 @@ const Orders = () => {
         onClose={() => {
           setOpenCreateOrder(false);
           setSelectedOrder(null);
+        }}
+        onSubmit={(orderPayload) => {
+          if (selectedOrder) {
+            // edit
+            setOrders((prev) =>
+              prev.map((o) => (o.id === orderPayload.id ? orderPayload : o))
+            );
+          } else {
+            // create
+            orderPayload.id = generateOrderId(orders);
+            setOrders((prev) => [...prev, orderPayload]);
+          }
         }}
       />
     </Box>

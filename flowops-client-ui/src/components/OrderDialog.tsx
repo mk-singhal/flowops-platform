@@ -18,18 +18,14 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useEffect, useState } from "react";
-
-type Item = {
-  sku: string;
-  qty: number;
-  price: number;
-};
+import type { Order, OrderItem } from "@/types";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   mode?: "create" | "edit";
-  initialData?: any;
+  initialData?: Order | null;
+  onSubmit: (order: Order) => void;
 };
 
 const CreateOrder = ({
@@ -37,10 +33,14 @@ const CreateOrder = ({
   onClose,
   mode = "create",
   initialData,
+  onSubmit,
 }: Props) => {
   const [customer, setCustomer] = useState("");
   const [address, setAddress] = useState("");
-  const [items, setItems] = useState<Item[]>([{ sku: "", qty: 1, price: 0 }]);
+  const [items, setItems] = useState<OrderItem[]>([
+    { sku: "", qty: 1, price: 0 },
+  ]);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   useEffect(() => {
     if (mode === "edit" && initialData) {
@@ -61,6 +61,7 @@ const CreateOrder = ({
 
   const handleClose = () => {
     onClose();
+    setHasSubmitted(false);
     setCustomer("");
     setAddress("");
     setItems([{ sku: "", qty: 1, price: 0 }]);
@@ -76,7 +77,7 @@ const CreateOrder = ({
 
   const handleItemChange = (
     index: number,
-    field: keyof Item,
+    field: keyof OrderItem,
     value: string | number
   ) => {
     const updatedItems = [...items];
@@ -84,22 +85,43 @@ const CreateOrder = ({
     setItems(updatedItems);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const isFormValid = () => {
+    if (!customer.trim()) return false;
+    if (!address.trim()) return false;
 
-    const payload = {
-      id: initialData?.id,
-      customer,
-      address,
-      items,
-    };
+    if (items.length === 0) return false;
 
-    if (mode === "edit") {
-      console.log("Updated Order:", payload);
-    } else {
-      console.log("New Order:", payload);
+    for (const item of items) {
+      if (!item.sku.trim()) return false;
+      if (item.qty <= 0) return false;
+      if (item.price < 0) return false;
     }
 
+    const skuSet = new Set(items.map((i) => i.sku.trim()));
+    if (skuSet.size !== items.length) return false;
+
+    return true;
+  };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setHasSubmitted(true);
+
+    if (!isFormValid()) {
+      return;
+    }
+
+    const orderPayload = {
+      id: initialData?.id ?? `ORD-${Date.now()}`,
+      customer,
+      address,
+      status: initialData?.status ?? "Pending",
+      date: initialData?.date ?? new Date().toLocaleDateString(),
+      items,
+      amount: items.reduce((acc, item) => acc + item.qty * item.price, 0),
+    };
+
+    onSubmit(orderPayload);
     handleClose();
   };
 
@@ -109,6 +131,11 @@ const CreateOrder = ({
         {mode === "edit" ? "Edit Order" : "Create Order"}
       </DialogTitle>
       <DialogContent>
+        {hasSubmitted && !isFormValid() && (
+          <DialogContentText color="error">
+            Please fix validation errors before submitting.
+          </DialogContentText>
+        )}
         <form onSubmit={handleSubmit} id="create-order-form">
           <Grid container spacing={3}>
             <Grid size={{ xs: 6, md: 4 }}>
@@ -246,7 +273,7 @@ const CreateOrder = ({
               variant="standard"
               slotProps={{
                 htmlInput: {
-                  readOnly: true
+                  readOnly: true,
                 },
               }}
             />
@@ -256,7 +283,12 @@ const CreateOrder = ({
 
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button type="submit" variant="contained" form="create-order-form">
+        <Button
+          type="submit"
+          variant="contained"
+          form="create-order-form"
+          disabled={!isFormValid()}
+        >
           {mode === "edit" ? "Update" : "Create"}
         </Button>
       </DialogActions>
