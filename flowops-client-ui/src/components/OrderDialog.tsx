@@ -26,6 +26,7 @@ type Props = {
   mode?: "create" | "edit";
   initialData?: Order | null;
   onSubmit: (order: Order) => void;
+  isSubmitting: boolean;
 };
 
 const CreateOrder = ({
@@ -34,6 +35,7 @@ const CreateOrder = ({
   mode = "create",
   initialData,
   onSubmit,
+  isSubmitting
 }: Props) => {
   const [customer, setCustomer] = useState("");
   const [address, setAddress] = useState("");
@@ -122,7 +124,7 @@ const CreateOrder = ({
     };
 
     onSubmit(orderPayload);
-    handleClose();
+    // handleClose();
   };
 
   return (
@@ -131,7 +133,7 @@ const CreateOrder = ({
         {mode === "edit" ? "Edit Order" : "Create Order"}
       </DialogTitle>
       <DialogContent>
-        {hasSubmitted && !isFormValid() && (
+        {open && hasSubmitted && !isFormValid() && (
           <DialogContentText color="error">
             Please fix validation errors before submitting.
           </DialogContentText>
@@ -282,12 +284,12 @@ const CreateOrder = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={handleClose}>Cancel</Button>
         <Button
           type="submit"
           variant="contained"
           form="create-order-form"
-          disabled={!isFormValid()}
+          disabled={!isFormValid() || isSubmitting}
         >
           {mode === "edit" ? "Update" : "Create"}
         </Button>

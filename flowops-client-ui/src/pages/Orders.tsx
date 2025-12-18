@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Box,
   Button,
@@ -15,47 +14,81 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import HighlightOffIcon from '@mui/icons-material/HighlightOff';
+import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import CreateOrder from "../components/OrderDialog";
 import type { Order } from "@/types";
+import { useState } from "react";
+import {
+  getOrders,
+  createOrder,
+  updateOrder,
+  cancelOrder,
+} from "@/api/mockOrders";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { QUERY_KEYS } from "@/api/queryKeys";
 
-const initialOrders: Order[] = [
-  {
-    id: "ORD-001",
-    customer: "Rahul Sharma",
-    address: "Delhi, India",
-    status: "Pending",
-    date: "23/01/2025",
-    amount: 0,
-    items: [
-      { sku: "SKU-101", qty: 2, price: 500 },
-      { sku: "SKU-102", qty: 1, price: 1400 },
-    ],
-  },
-  {
-    id: "ORD-002",
-    customer: "Ananya Gupta",
-    address: "Mumbai, India",
-    status: "Completed",
-    date: "23/01/2025",
-    amount: 0,
-    items: [{ sku: "SKU-103", qty: 1, price: 1200 }],
-  },
-];
+// const generateOrderId = (orders: Order[]) => {
+//   const maxId = orders.reduce((max, order) => {
+//     const num = Number(order.id.replace("ORD-", ""));
+//     return Math.max(max, num);
+//   }, 0);
 
-const generateOrderId = (orders: Order[]) => {
-  const maxId = orders.reduce((max, order) => {
-    const num = Number(order.id.replace("ORD-", ""));
-    return Math.max(max, num);
-  }, 0);
-
-  return `ORD-${String(maxId + 1).padStart(3, "0")}`;
-};
+//   return `ORD-${String(maxId + 1).padStart(3, "0")}`;
+// };
 
 const Orders = () => {
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  // const [orders, setOrders] = useState<Order[]>([]);
   const [openCreateOrder, setOpenCreateOrder] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  const queryClient = useQueryClient();
+
+  const { data: orders = [], isLoading } = useQuery({
+    queryKey: QUERY_KEYS.ORDERS,
+    queryFn: getOrders,
+  });
+
+  const createOrderMutation = useMutation({
+    mutationFn: createOrder,
+    onSuccess: () => {
+      setOpenCreateOrder(false);
+      setSelectedOrder(null);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDERS });
+    },
+    onError: () => {
+      alert("Failed to create order");
+    },
+  });
+
+  const updateOrderMutation = useMutation({
+    mutationFn: updateOrder,
+    onSuccess: () => {
+      setOpenCreateOrder(false);
+      setSelectedOrder(null);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDERS });
+    },
+    onError: () => {
+      alert("Failed to save order");
+    },
+  });
+
+  const cancelOrderMutation = useMutation({
+    mutationFn: (orderId: string) => cancelOrder(orderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDERS });
+    },
+    onError: () => {
+      alert("Failed to cancel order");
+    },
+  });
+
+  if (isLoading) {
+    return <Typography>Loading orders...</Typography>;
+  }
+
+  // useEffect(() => {
+  //   getOrders().then(setOrders);
+  // }, []);
 
   const handleEditOrder = (order: Order) => {
     setSelectedOrder(order);
@@ -79,6 +112,7 @@ const Orders = () => {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setOpenCreateOrder(true)}
+          disabled={createOrderMutation.isPending}
         >
           Create Order
         </Button>
@@ -142,6 +176,7 @@ const Orders = () => {
                         aria-label="edit-order"
                         size="small"
                         onClick={() => handleEditOrder(order)}
+                        disabled={updateOrderMutation.isPending}
                       >
                         <EditOutlinedIcon fontSize="inherit" />
                       </IconButton>
@@ -150,15 +185,8 @@ const Orders = () => {
                         aria-label="cancel-order"
                         size="small"
                         color="error"
-                        onClick={() =>
-                          setOrders((prev) =>
-                            prev.map((o) =>
-                              o.id === order.id
-                                ? { ...o, status: "Cancelled" }
-                                : o
-                            )
-                          )
-                        }
+                        disabled={cancelOrderMutation.isPending}
+                        onClick={() => cancelOrderMutation.mutate(order.id)}
                       >
                         <HighlightOffIcon fontSize="inherit" />
                       </IconButton>
@@ -182,16 +210,14 @@ const Orders = () => {
         }}
         onSubmit={(orderPayload) => {
           if (selectedOrder) {
-            // edit
-            setOrders((prev) =>
-              prev.map((o) => (o.id === orderPayload.id ? orderPayload : o))
-            );
+            updateOrderMutation.mutate(orderPayload);
           } else {
-            // create
-            orderPayload.id = generateOrderId(orders);
-            setOrders((prev) => [...prev, orderPayload]);
+            createOrderMutation.mutate(orderPayload);
           }
         }}
+        isSubmitting={
+          createOrderMutation.isPending || updateOrderMutation.isPending
+        }
       />
     </Box>
   );
