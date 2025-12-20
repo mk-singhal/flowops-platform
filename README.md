@@ -23,3 +23,7 @@ and Redis-backed caching for high-performance reads.
 - Redis caching and distributed locks
 - Server-side pagination and data-heavy dashboards
 - Dockerized frontend and backend services
+
+## Documentation
+- [Frontend](docs/frontend.md)
+- [Interview Notes (STAR Format)](docs/STAR_INTERVIEW_NOTES.md)
