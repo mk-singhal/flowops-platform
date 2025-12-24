@@ -1,6 +1,39 @@
 const Order = require("../models/order.model");
 
 /**
+ * GET /orders
+ * Fetch orders with pagination
+ */
+const getOrders = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const skip = (page - 1) * limit;
+
+    const [orders, total] = await Promise.all([
+      Order.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Order.countDocuments(),
+    ]);
+
+    res.json({
+      data: orders,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * POST /orders
  * Create a new order
  */
@@ -34,5 +67,6 @@ const createOrder = async (req, res, next) => {
 };
 
 module.exports = {
+  getOrders,
   createOrder,
 };
