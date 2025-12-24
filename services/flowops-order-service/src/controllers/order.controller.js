@@ -111,9 +111,51 @@ const updateOrder = async (req, res, next) => {
   }
 };
 
+/**
+ * DELETE /orders/:id
+ * Cancel an order
+ */
+const cancelOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        message: "Order not found",
+      });
+    }
+
+    // business rules
+    if (order.status === "Completed") {
+      return res.status(400).json({
+        message: "Completed orders cannot be cancelled",
+      });
+    }
+
+    if (order.status === "Cancelled") {
+      return res.status(400).json({
+        message: "Order is already cancelled",
+      });
+    }
+
+    order.status = "Cancelled";
+    await order.save();
+
+    res.json({
+      message: "Order cancelled successfully",
+      order,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 module.exports = {
   getOrders,
   createOrder,
-  updateOrder
+  updateOrder,
+  cancelOrder
 };
