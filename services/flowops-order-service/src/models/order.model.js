@@ -35,16 +35,15 @@ const OrderSchema = new mongoose.Schema(
 );
 
 /**
- * Pre-save hook (Django-like)
+ * Pre-validate hook
  */
-OrderSchema.pre("save", function (next) {
-  if (this.isModified("items")) {
+OrderSchema.pre("validate", function () {
+  if (this.items && this.items.length) {
     this.totalAmount = this.items.reduce(
       (sum, item) => sum + item.qty * item.price,
       0
     );
   }
-  next();
 });
 
 module.exports = mongoose.model("Order", OrderSchema);
