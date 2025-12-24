@@ -66,7 +66,54 @@ const createOrder = async (req, res, next) => {
   }
 };
 
+/**
+ * PUT /orders/:id
+ * Update an existing order
+ */
+const updateOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        message: "Order not found",
+      });
+    }
+
+    // business rule: completed orders are immutable
+    if (order.status === "Completed") {
+      return res.status(400).json({
+        message: "Completed orders cannot be updated",
+      });
+    }
+
+    // prevent manual total manipulation
+    delete updates.totalAmount;
+
+    Object.assign(order, updates);
+
+    // recompute total if items updated
+    if (updates.items) {
+      order.totalAmount = updates.items.reduce(
+        (sum, item) => sum + item.qty * item.price,
+        0
+      );
+    }
+
+    await order.save();
+
+    res.json(order);
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 module.exports = {
   getOrders,
   createOrder,
+  updateOrder
 };
