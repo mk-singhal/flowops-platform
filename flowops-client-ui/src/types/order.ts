@@ -12,6 +12,20 @@ export type Order = {
   address: string;
   status: OrderStatus;
   date: string;
-  amount: number;
+  totalAmount: number;
   items: OrderItem[];
+};
+
+export type CreateOrderPayload = {
+  customer: string;
+  address: string;
+  items: OrderItem[];
+};
+
+export type UpdateOrderPayload = {
+  id: string;
+  customer?: string;
+  address?: string;
+  items?: OrderItem[];
+  status?: OrderStatus;
 };

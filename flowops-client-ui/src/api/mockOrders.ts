@@ -7,7 +7,7 @@ let orders: Order[] = [
     address: "Delhi, India",
     status: "Pending",
     date: "23/01/2025",
-    amount: 2400,
+    totalAmount: 2400,
     items: [
       { sku: "SKU-101", qty: 2, price: 500 },
       { sku: "SKU-102", qty: 1, price: 1400 },
@@ -19,7 +19,7 @@ let orders: Order[] = [
     address: "Mumbai, India",
     status: "Completed",
     date: "23/01/2025",
-    amount: 1200,
+    totalAmount: 1200,
     items: [{ sku: "SKU-103", qty: 1, price: 1200 }],
   },
 ];

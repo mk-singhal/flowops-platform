@@ -16,14 +16,14 @@ import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import CreateOrder from "../components/OrderDialog";
-import type { Order } from "@/types";
+import type { Order, CreateOrderPayload, UpdateOrderPayload } from "@/types";
 import { useState } from "react";
 import {
   getOrders,
   createOrder,
   updateOrder,
   cancelOrder,
-} from "@/api/mockOrders";
+} from "@/api/order.api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEYS } from "@/api/queryKeys";
 
@@ -156,19 +156,14 @@ const Orders = () => {
                       order.status === "Completed"
                         ? "success"
                         : order.status === "Pending"
-                          ? "warning"
-                          : "error"
+                        ? "warning"
+                        : "error"
                     }
                     size="small"
                   />
                 </TableCell>
                 <TableCell>{order.date}</TableCell>
-                <TableCell>
-                  ₹
-                  {order?.items
-                    ?.reduce((acc, item) => acc + item.price * item.qty, 0)
-                    .toFixed(2)}
-                </TableCell>
+                <TableCell>₹{order.totalAmount.toFixed(2)}</TableCell>
                 <TableCell>
                   {order.status === "Pending" && (
                     <>
@@ -208,12 +203,11 @@ const Orders = () => {
           setOpenCreateOrder(false);
           setSelectedOrder(null);
         }}
-        onSubmit={(orderPayload) => {
-          if (selectedOrder) {
-            updateOrderMutation.mutate(orderPayload);
-          } else {
-            createOrderMutation.mutate(orderPayload);
-          }
+        onSubmitCreate={(payload: CreateOrderPayload) => {
+          createOrderMutation.mutate(payload);
+        }}
+        onSubmitUpdate={(payload: UpdateOrderPayload) => {
+          updateOrderMutation.mutate(payload);
         }}
         isSubmitting={
           createOrderMutation.isPending || updateOrderMutation.isPending

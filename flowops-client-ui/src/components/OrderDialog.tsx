@@ -18,14 +18,20 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useEffect, useState } from "react";
-import type { Order, OrderItem } from "@/types";
+import type {
+  Order,
+  OrderItem,
+  CreateOrderPayload,
+  UpdateOrderPayload,
+} from "@/types";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   mode?: "create" | "edit";
   initialData?: Order | null;
-  onSubmit: (order: Order) => void;
+  onSubmitCreate: (payload: CreateOrderPayload) => void;
+  onSubmitUpdate: (payload: UpdateOrderPayload) => void;
   isSubmitting: boolean;
 };
 
@@ -34,8 +40,9 @@ const CreateOrder = ({
   onClose,
   mode = "create",
   initialData,
-  onSubmit,
-  isSubmitting
+  onSubmitCreate,
+  onSubmitUpdate,
+  isSubmitting,
 }: Props) => {
   const [customer, setCustomer] = useState("");
   const [address, setAddress] = useState("");
@@ -109,22 +116,26 @@ const CreateOrder = ({
     event.preventDefault();
     setHasSubmitted(true);
 
-    if (!isFormValid()) {
-      return;
+    if (!isFormValid()) return;
+
+    if (mode === "edit" && initialData) {
+      const payload: UpdateOrderPayload = {
+        id: initialData.id,
+        customer,
+        address,
+        items,
+      };
+
+      onSubmitUpdate(payload);
+    } else {
+      const payload: CreateOrderPayload = {
+        customer,
+        address,
+        items,
+      };
+
+      onSubmitCreate(payload);
     }
-
-    const orderPayload = {
-      id: initialData?.id ?? `ORD-${Date.now()}`,
-      customer,
-      address,
-      status: initialData?.status ?? "Pending",
-      date: initialData?.date ?? new Date().toLocaleDateString(),
-      items,
-      amount: items.reduce((acc, item) => acc + item.qty * item.price, 0),
-    };
-
-    onSubmit(orderPayload);
-    // handleClose();
   };
 
   return (
