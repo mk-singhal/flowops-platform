@@ -41,12 +41,6 @@ const createOrder = async (req, res, next) => {
   try {
     const { customer, address, items, status } = req.body;
 
-    if (!customer || !address || !items || !items.length) {
-      return res.status(400).json({
-        message: "Invalid order payload",
-      });
-    }
-
     const totalAmount = items.reduce(
       (sum, item) => sum + item.qty * item.price,
       0
@@ -57,7 +51,7 @@ const createOrder = async (req, res, next) => {
       address,
       items,
       totalAmount,
-      status, // defaults to "Pending" if not sent
+      status,
     });
 
     return res.status(201).json(order);
