@@ -6,16 +6,13 @@ const Order = require("../models/order.model");
  */
 const getOrders = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit) || 10, 100);
 
     const skip = (page - 1) * limit;
 
     const [orders, total] = await Promise.all([
-      Order.find()
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
+      Order.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
       Order.countDocuments(),
     ]);
 
@@ -41,16 +38,10 @@ const createOrder = async (req, res, next) => {
   try {
     const { customer, address, items, status } = req.body;
 
-    const totalAmount = items.reduce(
-      (sum, item) => sum + item.qty * item.price,
-      0
-    );
-
     const order = await Order.create({
       customer,
       address,
       items,
-      totalAmount,
       status,
     });
 
@@ -84,18 +75,13 @@ const updateOrder = async (req, res, next) => {
       });
     }
 
-    // prevent manual total manipulation
-    delete updates.totalAmount;
+    const allowedFields = ["customer", "address", "items", "status"];
 
-    Object.assign(order, updates);
-
-    // recompute total if items updated
-    if (updates.items) {
-      order.totalAmount = updates.items.reduce(
-        (sum, item) => sum + item.qty * item.price,
-        0
-      );
-    }
+    allowedFields.forEach((field) => {
+      if (updates[field] !== undefined) {
+        order[field] = updates[field];
+      }
+    }); 
 
     await order.save();
 
@@ -146,10 +132,9 @@ const cancelOrder = async (req, res, next) => {
   }
 };
 
-
 module.exports = {
   getOrders,
   createOrder,
   updateOrder,
-  cancelOrder
+  cancelOrder,
 };
