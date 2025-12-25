@@ -175,4 +175,5 @@ The goal is **operational clarity**, not marketing.
 ## 📚 Related Documentation
 
 - [Project Overview](../README.md)
+- [Order Service Docs](order-service.md)
 - [Interview Notes (STAR Format)](STAR_INTERVIEW_NOTES.md)

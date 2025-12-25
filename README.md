@@ -26,4 +26,5 @@ and Redis-backed caching for high-performance reads.
 
 ## Documentation
 - [Frontend](docs/frontend.md)
+- [Order Service Docs](order-service.md)
 - [Interview Notes (STAR Format)](docs/STAR_INTERVIEW_NOTES.md)

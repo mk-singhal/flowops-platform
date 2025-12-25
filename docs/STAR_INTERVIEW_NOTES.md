@@ -86,3 +86,73 @@ The application behaved correctly even without backend validation, and the UI wa
 ---
 
 *Most challenges were around managing server-like state, clean mutation design, and handling subtle UI lifecycle issues without a real backend.*
+
+---
+
+## ⭐ STAR Notes – Order Service (Backend)
+
+## 6️⃣ Designing backend validation vs frontend payloads
+
+**S (Situation)**  
+While integrating the frontend with the Order Service, valid-looking requests were failing backend validation.
+
+**T (Task)**  
+I needed to identify why the API was rejecting requests and fix the frontend–backend contract without weakening validation.
+
+**A (Action)**  
+I realized the frontend was sending full domain objects instead of API-specific payloads, so I introduced DTO-style request shapes and kept Joi validation strict to reject unknown fields.
+
+**R (Result)**  
+The API contract became clearer, integration bugs were eliminated, and the backend was protected from incorrect client data.
+
+---
+
+## 7️⃣ Handling derived fields in MongoDB models
+
+**S (Situation)**  
+Order totals were derived from item data but were also required fields in the database schema.
+
+**T (Task)**  
+I needed to ensure totals were always correct without trusting the client or duplicating logic across controllers.
+
+**A (Action)**  
+I moved total calculation into a Mongoose model hook so totals are computed server-side before persistence.
+
+**R (Result)**  
+Data integrity improved, controllers became simpler, and future consumers can rely on consistent order data.
+
+---
+
+## 8️⃣ Writing API tests without breaking development data
+
+**S (Situation)**  
+Initial API tests interfered with development data by clearing the database after execution.
+
+**T (Task)**  
+I needed isolated, repeatable tests that were safe to run locally.
+
+**A (Action)**  
+I introduced a separate test database, environment-based configuration, and ensured each test seeded and cleaned up its own data.
+
+**R (Result)**  
+Tests became deterministic, safe to run anytime, and closer to real-world backend testing practices.
+
+---
+
+## 9️⃣ Updating nested MongoDB documents safely
+
+**S (Situation)**  
+Order updates started failing because MongoDB-generated `_id` fields inside nested items were being sent back to the API.
+
+**T (Task)**  
+I needed to allow updates without loosening backend validation rules.
+
+**A (Action)**  
+I stripped subdocument `_id` fields at the API boundary before sending update payloads.
+
+**R (Result)**  
+Validation remained strict, updates worked correctly, and the API contract stayed clean.
+
+---
+
+*Most backend challenges were around strict validation, clean API boundaries, and protecting the service from incorrect client behavior.*
