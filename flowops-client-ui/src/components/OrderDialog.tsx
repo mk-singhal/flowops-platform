@@ -51,17 +51,25 @@ const CreateOrder = ({
   ]);
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
+  const resetForm = () => {
+    setCustomer("");
+    setAddress("");
+    setItems([{ sku: "", qty: 1, price: 0 }]);
+    setHasSubmitted(false);
+  };
+
   useEffect(() => {
+    if (!open) return;
+
     if (mode === "edit" && initialData) {
       setCustomer(initialData.customer);
       setAddress(initialData.address);
       setItems(initialData.items);
     } else {
-      setCustomer("");
-      setAddress("");
-      setItems([{ sku: "", qty: 1, price: 0 }]);
+      resetForm();
     }
-  }, [mode, initialData]);
+    setHasSubmitted(false);
+  }, [open, mode, initialData]);
 
   const totalAmount = items.reduce(
     (acc, item) => acc + item.qty * item.price,
@@ -70,10 +78,7 @@ const CreateOrder = ({
 
   const handleClose = () => {
     onClose();
-    setHasSubmitted(false);
-    setCustomer("");
-    setAddress("");
-    setItems([{ sku: "", qty: 1, price: 0 }]);
+    resetForm();
   };
 
   const handleAddItem = () => {
