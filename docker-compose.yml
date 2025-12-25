@@ -1,8 +1,32 @@
-version: "3.9"
-
 services:
+  mongo:
+    image: mongo:7
+    container_name: flowops-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  order-service:
+    build:
+      context: ./services/flowops-order-service
+    container_name: flowops-order-service
+    ports:
+      - "5001:5001"
+    environment:
+      PORT: 5001
+      MONGO_URI: mongodb://mongo:27017/flowops-orders
+    depends_on:
+      - mongo
+
   frontend:
     build:
       context: ./flowops-client-ui
+    container_name: flowops-frontend
     ports:
-      - "3000:80"
+      - "5173:80"
+    depends_on:
+      - order-service
+
+volumes:
+  mongo-data:

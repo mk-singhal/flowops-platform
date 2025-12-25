@@ -46,6 +46,8 @@ const Orders = () => {
   const { data: orders = [], isLoading } = useQuery({
     queryKey: QUERY_KEYS.ORDERS,
     queryFn: getOrders,
+    refetchOnWindowFocus: false,
+    staleTime: 30_000,
   });
 
   const createOrderMutation = useMutation({
