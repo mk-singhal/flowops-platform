@@ -1,6 +1,7 @@
 const Order = require("../models/order.model");
 const redis = require("../config/redis");
 const { invalidateOrdersCache } = require("../utils/cache");
+const { acquireLock, releaseLock } = require("../utils/lock");
 
 /**
  * GET /orders
@@ -18,7 +19,14 @@ const getOrders = async (req, res, next) => {
     const cacheKey = `orders:page:${page}:limit:${limit}`;
 
     // Try Redis
-    const cached = await redis.get(cacheKey);
+    let cached = null;
+
+    try {
+      cached = await redis.get(cacheKey);
+    } catch (err) {
+      console.error("Redis read failed:", err.message);
+    }
+
     if (cached) {
       console.log("Serving orders from Redis cache");
       return res.json(JSON.parse(cached));
@@ -43,7 +51,11 @@ const getOrders = async (req, res, next) => {
     };
 
     // Store in Redis
-    await redis.set(cacheKey, JSON.stringify(response), "EX", CACHE_TTL);
+    try {
+      await redis.set(cacheKey, JSON.stringify(response), "EX", CACHE_TTL);
+    } catch (err) {
+      console.error("Redis write failed:", err.message);
+    }
 
     res.json(response);
   } catch (err) {
@@ -66,7 +78,11 @@ const createOrder = async (req, res, next) => {
       status,
     });
 
-    await invalidateOrdersCache();
+    try {
+      await invalidateOrdersCache();
+    } catch (err) {
+      console.error("Cache invalidation failed:", err.message);
+    }
 
     return res.status(201).json(order);
   } catch (err) {
@@ -79,8 +95,28 @@ const createOrder = async (req, res, next) => {
  * Update an existing order
  */
 const updateOrder = async (req, res, next) => {
+  const { id } = req.params;
+  const lockKey = `lock:order:${id}`;
+
+  let lockAcquired;
+
   try {
-    const { id } = req.params;
+    lockAcquired = await acquireLock(lockKey);
+  } catch (err) {
+    return res.status(503).json({
+      message: "Order updates temporarily unavailable",
+      reason: "Locking service unavailable",
+    });
+  }
+
+  if (!lockAcquired) {
+    return res.status(409).json({
+      message: "Order is being updated, please try again",
+    });
+  }
+
+  try {
+    // const { id } = req.params;
     const updates = req.body;
 
     const order = await Order.findById(id);
@@ -107,11 +143,18 @@ const updateOrder = async (req, res, next) => {
     });
 
     await order.save();
-    await invalidateOrdersCache();
+
+    try {
+      await invalidateOrdersCache();
+    } catch (err) {
+      console.error("Cache invalidation failed:", err.message);
+    }
 
     res.json(order);
   } catch (err) {
     next(err);
+  } finally {
+    await releaseLock(lockKey);
   }
 };
 
@@ -120,9 +163,27 @@ const updateOrder = async (req, res, next) => {
  * Cancel an order
  */
 const cancelOrder = async (req, res, next) => {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
+  const lockKey = `lock:order:${id}`;
 
+  let lockAcquired;
+
+  try {
+    lockAcquired = await acquireLock(lockKey);
+  } catch (err) {
+    return res.status(503).json({
+      message: "Order updates temporarily unavailable",
+      reason: "Locking service unavailable",
+    });
+  }
+
+  if (!lockAcquired) {
+    return res.status(409).json({
+      message: "Order is being updated, please try again",
+    });
+  }
+
+  try {
     const order = await Order.findById(id);
 
     if (!order) {
@@ -147,7 +208,11 @@ const cancelOrder = async (req, res, next) => {
     order.status = "Cancelled";
     await order.save();
 
-    await invalidateOrdersCache();
+    try {
+      await invalidateOrdersCache();
+    } catch (err) {
+      console.error("Cache invalidation failed:", err.message);
+    }
 
     res.json({
       message: "Order cancelled successfully",
@@ -155,6 +220,8 @@ const cancelOrder = async (req, res, next) => {
     });
   } catch (err) {
     next(err);
+  } finally {
+    await releaseLock(lockKey);
   }
 };
 

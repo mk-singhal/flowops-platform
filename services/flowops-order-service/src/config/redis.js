@@ -3,7 +3,11 @@ const Redis = require("ioredis");
 const redis = new Redis({
   host: process.env.REDIS_HOST,
   port: Number(process.env.REDIS_PORT),
-  lazyConnect: true,
+  
+  lazyConnect: true,        // start only when needed
+  connectTimeout: 500,      // fail fast
+  maxRetriesPerRequest: 1,  // no hanging requests
+  retryStrategy: () => null // stop infinite retries
 });
 
 redis.on("connect", () => {
