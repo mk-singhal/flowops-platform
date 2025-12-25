@@ -2,6 +2,7 @@ const Order = require("../models/order.model");
 const redis = require("../config/redis");
 const { invalidateOrdersCache } = require("../utils/cache");
 const { acquireLock, releaseLock } = require("../utils/lock");
+const { ordersList, orderLock } = require("../utils/redisKeys");
 
 /**
  * GET /orders
@@ -16,7 +17,7 @@ const getOrders = async (req, res, next) => {
     const limit = Math.min(parseInt(req.query.limit) || 10, 100);
     const skip = (page - 1) * limit;
 
-    const cacheKey = `orders:page:${page}:limit:${limit}`;
+    const cacheKey = ordersList(page, limit);
 
     // Try Redis
     let cached = null;
@@ -96,7 +97,7 @@ const createOrder = async (req, res, next) => {
  */
 const updateOrder = async (req, res, next) => {
   const { id } = req.params;
-  const lockKey = `lock:order:${id}`;
+  const lockKey = orderLock(id);
 
   let lockAcquired;
 
@@ -164,7 +165,7 @@ const updateOrder = async (req, res, next) => {
  */
 const cancelOrder = async (req, res, next) => {
   const { id } = req.params;
-  const lockKey = `lock:order:${id}`;
+  const lockKey = orderLock(id);
 
   let lockAcquired;
 

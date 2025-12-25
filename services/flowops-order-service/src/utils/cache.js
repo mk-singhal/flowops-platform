@@ -1,7 +1,7 @@
 const redis = require("../config/redis");
 
 const invalidateOrdersCache = async () => {
-  const keys = await redis.keys("orders:page:*");
+  const keys = await redis.keys("flowops:order-service:v1:orders:list:*");
 
   if (keys.length > 0) {
     await redis.del(keys);
