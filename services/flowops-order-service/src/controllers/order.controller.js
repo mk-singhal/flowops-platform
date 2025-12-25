@@ -1,22 +1,37 @@
 const Order = require("../models/order.model");
+const redis = require("../config/redis");
 
 /**
  * GET /orders
  * Fetch orders with pagination
  */
+
+const CACHE_TTL = 60; // seconds
+
 const getOrders = async (req, res, next) => {
   try {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = Math.min(parseInt(req.query.limit) || 10, 100);
-
     const skip = (page - 1) * limit;
 
+    const cacheKey = `orders:page:${page}:limit:${limit}`;
+
+    // Try Redis
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      console.log("Serving orders from Redis cache");
+      return res.json(JSON.parse(cached));
+    }
+
+    // Fallback to Mongo
+    console.log("Fetching orders from MongoDB");
+
     const [orders, total] = await Promise.all([
-      Order.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Order.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Order.countDocuments(),
     ]);
 
-    res.json({
+    const response = {
       data: orders,
       pagination: {
         total,
@@ -24,7 +39,12 @@ const getOrders = async (req, res, next) => {
         limit,
         totalPages: Math.ceil(total / limit),
       },
-    });
+    };
+
+    // Store in Redis
+    await redis.set(cacheKey, JSON.stringify(response), "EX", CACHE_TTL);
+
+    res.json(response);
   } catch (err) {
     next(err);
   }
@@ -81,7 +101,7 @@ const updateOrder = async (req, res, next) => {
       if (updates[field] !== undefined) {
         order[field] = updates[field];
       }
-    }); 
+    });
 
     await order.save();
 
