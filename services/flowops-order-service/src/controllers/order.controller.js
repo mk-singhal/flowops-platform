@@ -1,5 +1,6 @@
 const Order = require("../models/order.model");
 const redis = require("../config/redis");
+const { invalidateOrdersCache } = require("../utils/cache");
 
 /**
  * GET /orders
@@ -65,6 +66,8 @@ const createOrder = async (req, res, next) => {
       status,
     });
 
+    await invalidateOrdersCache();
+
     return res.status(201).json(order);
   } catch (err) {
     next(err);
@@ -104,6 +107,7 @@ const updateOrder = async (req, res, next) => {
     });
 
     await order.save();
+    await invalidateOrdersCache();
 
     res.json(order);
   } catch (err) {
@@ -142,6 +146,8 @@ const cancelOrder = async (req, res, next) => {
 
     order.status = "Cancelled";
     await order.save();
+
+    await invalidateOrdersCache();
 
     res.json({
       message: "Order cancelled successfully",
