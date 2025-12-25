@@ -86,6 +86,20 @@ http://localhost:5001
 
 ---
 
+## Redis Usage
+
+This service uses Redis as a performance and coordination layer.
+
+- Read-through caching for paginated order reads
+- Distributed locking to prevent concurrent updates
+- MongoDB remains the source of truth
+- Reads fall back to MongoDB if Redis is unavailable
+- Writes fail closed if Redis locking is unavailable
+
+See [Redis Architecture](redis-architecture.md) for full details.
+
+---
+
 ## Notes
 
 - The service does not handle inventory updates
