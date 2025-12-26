@@ -3,6 +3,8 @@ const redis = require("../config/redis");
 const { invalidateOrdersCache } = require("../utils/cache");
 const { acquireLock, releaseLock } = require("../utils/lock");
 const { ordersList, orderLock } = require("../utils/redisKeys");
+const { publishEvent } = require("../kafka/producer");
+const { v4: uuidv4 } = require("uuid");
 
 /**
  * GET /orders
@@ -78,6 +80,21 @@ const createOrder = async (req, res, next) => {
       items,
       status,
     });
+
+    const event = {
+      eventId: uuidv4(),
+      eventType: "ORDER_CREATED",
+      timestamp: new Date().toISOString(),
+      payload: {
+        orderId: order.id,
+        items: order.items.map((item) => ({
+          sku: item.sku,
+          qty: item.qty,
+        })),
+      },
+    };
+
+    publishEvent(event);
 
     try {
       await invalidateOrdersCache();
@@ -208,6 +225,17 @@ const cancelOrder = async (req, res, next) => {
 
     order.status = "Cancelled";
     await order.save();
+
+    const event = {
+      eventId: uuidv4(),
+      eventType: "ORDER_CANCELLED",
+      timestamp: new Date().toISOString(),
+      payload: {
+        orderId: order.id,
+      },
+    };
+
+    publishEvent(event);
 
     try {
       await invalidateOrdersCache();
