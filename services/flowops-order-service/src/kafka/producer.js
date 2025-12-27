@@ -6,17 +6,32 @@ const kafka = new Kafka({
 });
 
 const producer = kafka.producer();
+let isProducerConnected = false;
 
 const connectProducer = async () => {
-  try {
-    await producer.connect();
-    console.log("[Kafka] Producer connected");
-  } catch (err) {
-    console.error("[Kafka] Producer connection failed", err);
+  const MAX_RETRIES = 5;
+
+  for (let i = 1; i <= MAX_RETRIES; i++) {
+    try {
+      await producer.connect();
+      isProducerConnected = true;
+      console.log("[Kafka] Producer connected");
+      return;
+    } catch (err) {
+      console.error(`[Kafka] Connection attempt ${i} failed`);
+      await new Promise((res) => setTimeout(res, 3000));
+    }
   }
+
+  console.error("[Kafka] Producer could not connect after retries");
 };
 
 const publishEvent = async (event) => {
+  if (!isProducerConnected) {
+    console.warn("[Kafka] Producer not connected, skipping event:", event.eventType);
+    return;
+  }
+
   try {
     await producer.send({
       topic: "order-events",
