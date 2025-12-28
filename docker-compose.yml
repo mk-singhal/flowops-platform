@@ -60,5 +60,15 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
+  inventory-service:
+    build: ./services/flowops-inventory-service
+    container_name: flowops-inventory-service
+    depends_on:
+      - kafka
+    volumes:
+      - ./services/flowops-inventory-service:/app
+    working_dir: /app
+    command: node index.js
+
 volumes:
   mongo-data:
