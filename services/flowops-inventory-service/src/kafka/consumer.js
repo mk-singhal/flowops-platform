@@ -37,6 +37,12 @@ const startConsumer = async () => {
   }
 };
 
+process.on("SIGTERM", async () => {
+  console.log("[Kafka] Inventory consumer shutting down...");
+  await consumer.disconnect();
+  process.exit(0);
+});
+
 module.exports = {
   startConsumer,
 };
