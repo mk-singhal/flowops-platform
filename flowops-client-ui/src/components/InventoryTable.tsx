@@ -7,7 +7,9 @@ import {
   TableRow,
   Paper,
   Typography,
+  Chip,
 } from "@mui/material";
+import { LOW_STOCK_THRESHOLD } from "@/constants/inventory";
 import type { InventoryItem } from "@/api/inventory.api";
 
 type Props = {
@@ -41,23 +43,42 @@ const InventoryTable = ({ items }: Props) => {
               <b>Total</b>
             </TableCell>
             <TableCell>
+              <b>Status</b>
+            </TableCell>
+            <TableCell>
               <b>Last Updated</b>
             </TableCell>
           </TableRow>
         </TableHead>
 
         <TableBody>
-          {items.map((item) => (
-            <TableRow key={item.sku}>
-              <TableCell>{item.sku}</TableCell>
-              <TableCell>{item.availableQty}</TableCell>
-              <TableCell>{item.reservedQty}</TableCell>
-              <TableCell>
-                {item.availableQty + item.reservedQty}
-              </TableCell>
-              <TableCell>{new Date(item.updatedAt).toLocaleString()}</TableCell>
-            </TableRow>
-          ))}
+          {items.map((item) => {
+            const isLowStock = item.availableQty <= LOW_STOCK_THRESHOLD;
+
+            return (
+              <TableRow
+                key={item.sku}
+                sx={{
+                  backgroundColor: isLowStock ? "#FEF2F2" : "inherit",
+                }}
+              >
+                <TableCell>{item.sku}</TableCell>
+                <TableCell>{item.availableQty}</TableCell>
+                <TableCell>{item.reservedQty}</TableCell>
+                <TableCell>{item.availableQty + item.reservedQty}</TableCell>
+                <TableCell>
+                  <Chip
+                    size="small"
+                    label={isLowStock ? "LOW" : "OK"}
+                    color={isLowStock ? "error" : "success"}
+                  />
+                </TableCell>
+                <TableCell>
+                  {new Date(item.updatedAt).toLocaleString()}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </TableContainer>

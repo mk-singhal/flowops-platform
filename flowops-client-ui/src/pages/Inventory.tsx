@@ -47,6 +47,13 @@ const Inventory = () => {
                   updatedAt: "01-01-2026",
                 },
                 {
+                  sku: "SKU-4603",
+                  availableQty: 5,
+                  reservedQty: 2,
+                  totalQty: 7,
+                  updatedAt: "01-01-2026",
+                },
+                {
                   sku: "SKU-2323",
                   availableQty: 110,
                   reservedQty: 10,
