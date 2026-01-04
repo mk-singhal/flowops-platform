@@ -1,10 +1,39 @@
-import { Box, Typography, CircularProgress, Alert } from "@mui/material";
+import {
+  Box,
+  Typography,
+  CircularProgress,
+  Alert,
+  TextField,
+  FormControlLabel,
+  Checkbox,
+} from "@mui/material";
+import { useMemo, useState } from "react";
+import { LOW_STOCK_THRESHOLD } from "@/constants/inventory";
 import { useInventory } from "@/hooks/useInventory";
 import InventoryTable from "@/components/InventoryTable";
 
 const Inventory = () => {
   const { data, isLoading, isError } = useInventory(1, 20);
   const totalItems = data?.meta?.total ?? data?.data?.length ?? 0;
+
+  const [search, setSearch] = useState("");
+  const [lowStockOnly, setLowStockOnly] = useState(false);
+
+  const filteredItems = useMemo(() => {
+    if (!data?.data) return [];
+
+    return data.data.filter((item) => {
+      const matchesSearch = item.sku
+        .toLowerCase()
+        .includes(search.toLowerCase());
+
+      const matchesLowStock = lowStockOnly
+        ? item.availableQty <= LOW_STOCK_THRESHOLD
+        : true;
+
+      return matchesSearch && matchesLowStock;
+    });
+  }, [data, search, lowStockOnly]);
 
   return (
     <Box p={2}>
@@ -36,33 +65,37 @@ const Inventory = () => {
           <Typography variant="body2" color="text.secondary">
             Total items: {totalItems}
           </Typography>
-          <InventoryTable
-            items={
-              data?.data || [
-                {
-                  sku: "SKU-1889",
-                  availableQty: 220,
-                  reservedQty: 20,
-                  totalQty: 240,
-                  updatedAt: "01-01-2026",
-                },
-                {
-                  sku: "SKU-4603",
-                  availableQty: 5,
-                  reservedQty: 2,
-                  totalQty: 7,
-                  updatedAt: "01-01-2026",
-                },
-                {
-                  sku: "SKU-2323",
-                  availableQty: 110,
-                  reservedQty: 10,
-                  totalQty: 120,
-                  updatedAt: "02-01-2026",
-                }
-              ]
-            }
-          />
+          <Box
+            display="flex"
+            gap={2}
+            alignItems="center"
+            flexWrap="wrap"
+            mb={2}
+          >
+            <TextField
+              size="small"
+              label="Search by SKU"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={lowStockOnly}
+                  onChange={(e) => setLowStockOnly(e.target.checked)}
+                />
+              }
+              label="Low stock only"
+            />
+          </Box>
+          {data && filteredItems.length > 0 ? (
+            <InventoryTable items={filteredItems} />
+          ) : (
+            <Alert severity="info">
+              No inventory items match the selected filters.
+            </Alert>
+          )}
         </Box>
       )}
     </Box>
