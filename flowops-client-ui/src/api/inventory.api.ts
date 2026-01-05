@@ -1,5 +1,7 @@
 import axios from "axios";
 
+const API_BASE = import.meta.env.VITE_INVENTORY_SERVICE_URL;
+
 export type InventoryItem = {
   sku: string;
   availableQty: number;
@@ -21,7 +23,7 @@ export const fetchInventory = async (
   page = 1,
   limit = 20
 ): Promise<InventoryResponse> => {
-  const response = await axios.get("/api/inventory", {
+  const response = await axios.get(`${API_BASE}/inventory`, {
     params: { page, limit },
   });
 
@@ -31,6 +33,6 @@ export const fetchInventory = async (
 export const fetchInventoryBySku = async (
   sku: string
 ): Promise<InventoryItem> => {
-  const response = await axios.get(`/api/inventory/${sku}`);
+  const response = await axios.get(`${API_BASE}/inventory/${sku}`);
   return response.data;
 };

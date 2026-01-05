@@ -52,8 +52,16 @@ const Inventory = () => {
 
       {/* Error State */}
       {isError && (
-        <Alert severity="error">
-          Failed to load inventory. Please try again.
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={() => refetch()}>
+              Retry
+            </Button>
+          }
+        >
+          Unable to fetch inventory data. The inventory service may be
+          unavailable.
         </Alert>
       )}
 
@@ -99,12 +107,15 @@ const Inventory = () => {
               {isFetching ? "Refreshing..." : "Refresh"}
             </Button>
           </Box>
-          {data && filteredItems.length > 0 ? (
-            <InventoryTable items={filteredItems} />
-          ) : (
+
+          {data && filteredItems.length === 0 && !isError && (
             <Alert severity="info">
-              No inventory items match the selected filters.
+              No inventory items available or matching the selected filters.
             </Alert>
+          )}
+
+          {data && filteredItems.length > 0 && (
+            <InventoryTable items={filteredItems} />
           )}
         </Box>
       )}

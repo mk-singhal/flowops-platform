@@ -8,6 +8,7 @@ export const useInventory = (page = 1, limit = 20) => {
   return useQuery<InventoryResponse>({
     queryKey: [INVENTORY_QUERY_KEY, page, limit],
     queryFn: () => fetchInventory(page, limit),
+    refetchOnWindowFocus: false,
     placeholderData: (previousData) => previousData,
     staleTime: 30 * 1000, // 30 seconds
     refetchInterval: 60 * 1000, // every 60s
