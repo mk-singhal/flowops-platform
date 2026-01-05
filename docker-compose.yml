@@ -63,12 +63,12 @@ services:
   inventory-service:
     build: ./services/flowops-inventory-service
     container_name: flowops-inventory-service
+    ports:
+      - "4002:4002"
+    env_file:
+      - ./services/flowops-inventory-service/.env
     depends_on:
       - kafka
-    volumes:
-      - ./services/flowops-inventory-service:/app
-    working_dir: /app
-    command: node index.js
 
 volumes:
   mongo-data:
