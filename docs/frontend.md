@@ -42,9 +42,21 @@ marketing websites.
 - Business-rule-driven UI restrictions (e.g. no edit on completed orders)
 
 ### Inventory Dashboard
+
+The Inventory dashboard is a read-only, event-driven view of stock levels.
+
+#### Key characteristics:
 - Paginated views for large datasets
 - Optimized rendering for admin-style tables
 - Read-heavy design aligned with Redis-backed APIs
+
+Inventory updates are expected to flow as:
+```
+Orders → Kafka Events → Inventory Service → Inventory UI
+```
+
+The UI does not assume real-time consistency and handles missing or delayed
+data gracefully.
 
 ### Operational UX
 - Dialog-driven workflows
@@ -61,28 +73,29 @@ The frontend follows a **feature-oriented structure**:
 ├── components/     # Reusable UI components
 ├── pages/          # Route-level screens
 ├── api/            # API interaction layer
+├── hooks/          # React Query hooks & server-state logic
+├── constants/      # Shared UI & business thresholds
 ├── types/          # Shared TypeScript types
 └── App.tsx         # Route definitions
 ```
 
-### Key Principles
-- Pages handle composition, not logic
-- Services abstract API calls
-- Types are centralized and reusable
-- UI components remain stateless where possible
+### Architectural Principles
+- Pages compose UI, not business logic
+- API calls are isolated in the api/ layer
+- Server state is handled via React Query
+- Components remain stateless and reusable
+- UI is defensive against backend unavailability
 
 ---
 
 ## 🔀 Routing Model (SPA)
 
-The frontend is a **Single Page Application (SPA)**.
+The frontend is a **Single Page Application (SPA)** using React Router.
 
-Routes such as:
-/dashboard
-/orders
-/inventory
-
-are handled entirely on the client using React Router.
+Routes include:
+- /
+- /orders
+- /inventory
 
 This allows:
 - Fast navigation
@@ -96,9 +109,9 @@ This allows:
 The frontend communicates with backend services via HTTP APIs.
 
 Characteristics:
-- Backend is treated as a black box
-- No frontend assumptions about implementation
-- Backend endpoints may internally use Kafka / Redis
+- Backend services are treated as black boxes
+- No assumptions about Kafka, Redis, or DB internals
+- APIs may return partial or delayed data
 
 This mirrors real-world frontend-backend contracts.
 
@@ -137,8 +150,6 @@ dist/
 ```
 These assets are served via NGINX in production.
 
-(See _docs/frontend.md_ for Docker and NGINX details.)
-
 ---
 
 ## 🧠 Design Decisions
@@ -153,6 +164,11 @@ These assets are served via NGINX in production.
 - Faster user experience
 - Decoupled backend services
 - Easier to scale frontend independently
+
+### Why Read-Only Inventory UI?
+- Inventory is modified by backend workflows
+- Prevents accidental state corruption
+- Reflects real-world operational systems
 
 ### Why TypeScript?
 - Safer refactors
