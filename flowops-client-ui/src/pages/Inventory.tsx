@@ -6,6 +6,7 @@ import {
   TextField,
   FormControlLabel,
   Checkbox,
+  Button,
 } from "@mui/material";
 import { useMemo, useState } from "react";
 import { LOW_STOCK_THRESHOLD } from "@/constants/inventory";
@@ -13,7 +14,7 @@ import { useInventory } from "@/hooks/useInventory";
 import InventoryTable from "@/components/InventoryTable";
 
 const Inventory = () => {
-  const { data, isLoading, isError } = useInventory(1, 20);
+  const { data, isLoading, isError, refetch, isFetching } = useInventory(1, 20);
   const totalItems = data?.meta?.total ?? data?.data?.length ?? 0;
 
   const [search, setSearch] = useState("");
@@ -88,6 +89,15 @@ const Inventory = () => {
               }
               label="Low stock only"
             />
+
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              {isFetching ? "Refreshing..." : "Refresh"}
+            </Button>
           </Box>
           {data && filteredItems.length > 0 ? (
             <InventoryTable items={filteredItems} />

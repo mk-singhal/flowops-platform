@@ -10,5 +10,7 @@ export const useInventory = (page = 1, limit = 20) => {
     queryFn: () => fetchInventory(page, limit),
     placeholderData: (previousData) => previousData,
     staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 60 * 1000, // every 60s
+    refetchIntervalInBackground: false,
   });
 };
