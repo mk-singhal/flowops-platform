@@ -232,6 +232,10 @@ const cancelOrder = async (req, res, next) => {
       timestamp: new Date().toISOString(),
       payload: {
         orderId: order.id,
+        items: order.items.map((item) => ({
+          sku: item.sku,
+          qty: item.qty,
+        })),
       },
     };
 
