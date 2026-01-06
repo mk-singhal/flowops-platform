@@ -1,5 +1,6 @@
 const { Kafka } = require("kafkajs");
 const inventoryRepo = require("../repositories/inventory.repository");
+const mongoose = require("mongoose");
 
 const kafka = new Kafka({
   clientId: "inventory-service",
@@ -12,54 +13,73 @@ const consumer = kafka.consumer({
 
 const handleOrderCreated = async (items) => {
   for (const item of items) {
-    const { sku, qty } = item;
+    try {
+      const { sku, qty } = item;
 
-    let inventory = await inventoryRepo.findBySku(sku);
+      let inventory = await inventoryRepo.findBySku(sku);
 
-    // Create inventory record if not present
-    if (!inventory) {
-      inventory = await inventoryRepo.createInventory({
+      // Create inventory record if not present
+      if (!inventory) {
+        inventory = await inventoryRepo.createInventory({
+          sku,
+          availableQty: 0,
+          reservedQty: 0,
+        });
+      }
+
+      if (inventory.availableQty < qty) {
+        console.warn(
+          `[Inventory] Insufficient stock for SKU=${sku}, required=${qty}, available=${inventory.availableQty}`
+        );
+        continue;
+      }
+
+      await inventoryRepo.updateQuantities(
         sku,
-        availableQty: 0,
-        reservedQty: 0,
-      });
-    }
-
-    if (inventory.availableQty < qty) {
-      console.warn(
-        `[Inventory] Insufficient stock for SKU=${sku}, required=${qty}, available=${inventory.availableQty}`
+        inventory.availableQty - qty,
+        inventory.reservedQty + qty
       );
-      continue;
+
+      console.log(`[Inventory] Reserved ${qty} units for SKU=${sku}`);
+    } catch (err) {
+      console.error(`[Inventory] Failed to update SKU=${item.sku}`, err);
+      throw err; // force retry of entire message
     }
-
-    await inventoryRepo.updateQuantities(
-      sku,
-      inventory.availableQty - qty,
-      inventory.reservedQty + qty
-    );
-
-    console.log(`[Inventory] Reserved ${qty} units for SKU=${sku}`);
   }
 };
 
 const handleOrderCancelled = async (items) => {
   for (const item of items) {
-    const { sku, qty } = item;
+    try {
+      const { sku, qty } = item;
 
-    const inventory = await inventoryRepo.findBySku(sku);
-    if (!inventory) {
-      console.warn(`[Inventory] No inventory found for SKU=${sku}`);
-      continue;
+      const inventory = await inventoryRepo.findBySku(sku);
+      if (!inventory) {
+        console.warn(`[Inventory] No inventory found for SKU=${sku}`);
+        continue;
+      }
+
+      await inventoryRepo.updateQuantities(
+        sku,
+        inventory.availableQty + qty,
+        Math.max(inventory.reservedQty - qty, 0)
+      );
+
+      console.log(`[Inventory] Released ${qty} units for SKU=${sku}`);
+    } catch (err) {
+      console.error(`[Inventory] Failed to update SKU=${item.sku}`, err);
+      throw err; // force retry of entire message
     }
-
-    await inventoryRepo.updateQuantities(
-      sku,
-      inventory.availableQty + qty,
-      Math.max(inventory.reservedQty - qty, 0)
-    );
-
-    console.log(`[Inventory] Released ${qty} units for SKU=${sku}`);
   }
+};
+
+const isValidEvent = (event) => {
+  return (
+    event &&
+    typeof event.eventType === "string" &&
+    event.payload &&
+    Array.isArray(event.payload.items)
+  );
 };
 
 const startConsumer = async () => {
@@ -74,32 +94,42 @@ const startConsumer = async () => {
 
     await consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
+        // Mongo not ready → pause consumption
+        if (mongoose.connection.readyState !== 1) {
+          console.warn("[Inventory] Mongo not connected, pausing consumption");
+
+          consumer.pause([{ topic, partitions: [partition] }]);
+
+          setTimeout(() => {
+            if (mongoose.connection.readyState === 1) {
+              console.log(
+                "[Inventory] Mongo reconnected, resuming consumption"
+              );
+              consumer.resume([{ topic, partitions: [partition] }]);
+            }
+          }, 5000);
+
+          return;
+        }
+
+        const event = JSON.parse(message.value.toString());
+
+        if (!isValidEvent(event)) {
+          console.error("[Kafka] Invalid event, skipping");
+          return;
+        }
+
         try {
-          const event = JSON.parse(message.value.toString());
-
-          console.log("[Kafka] Event received:", {
-            topic,
-            partition,
-            eventType: event.eventType,
-          });
-
-          const { eventType, payload } = event;
-
-          if (!payload || !payload.items) {
-            console.warn("[Kafka] Invalid event payload, skipping");
-            return;
+          if (event.eventType === "ORDER_CREATED") {
+            await handleOrderCreated(event.payload.items);
           }
 
-          if (eventType === "ORDER_CREATED") {
-            await handleOrderCreated(payload.items);
-          }
-
-          if (eventType === "ORDER_CANCELLED") {
-            await handleOrderCancelled(payload.items);
+          if (event.eventType === "ORDER_CANCELLED") {
+            await handleOrderCancelled(event.payload.items);
           }
         } catch (err) {
-          console.error("[Kafka] Failed to process inventory event", err);
-
+          console.error("[Kafka] Inventory update failed", err);
+          throw err; // real processing errors
         }
       },
     });

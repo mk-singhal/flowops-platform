@@ -7,14 +7,10 @@ const { startConsumer } = require("./kafka/consumer"); // start kafka consumer
 
 const PORT = process.env.PORT || 4002;
 
+connectMongo();
+
 startConsumer();
 
-const start = async () => {
-  await connectMongo();
-
-  app.listen(PORT, () => {
-    console.log(`[Inventory Service] running on port ${PORT}`);
-  });
-};
-
-start();
+app.listen(PORT, () => {
+  console.log(`[Inventory Service] running on port ${PORT}`);
+});
