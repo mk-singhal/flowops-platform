@@ -5,6 +5,7 @@ const { acquireLock, releaseLock } = require("../utils/lock");
 const { ordersList, orderLock } = require("../utils/redisKeys");
 const { publishEvent } = require("../kafka/producer");
 const { v4: uuidv4 } = require("uuid");
+const logger = require("../utils/logger");
 
 /**
  * GET /orders
@@ -79,6 +80,11 @@ const createOrder = async (req, res, next) => {
       address,
       items,
       status,
+    });
+
+    logger.info("Order created", {
+      orderId: order.id,
+      itemCount: order.items.length,
     });
 
     const event = {

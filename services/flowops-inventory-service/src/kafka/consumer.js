@@ -1,6 +1,7 @@
 const { Kafka } = require("kafkajs");
 const inventoryRepo = require("../repositories/inventory.repository");
 const mongoose = require("mongoose");
+const logger = require("../utils/logger");
 
 const kafka = new Kafka({
   clientId: "inventory-service",
@@ -28,9 +29,11 @@ const handleOrderCreated = async (items) => {
       }
 
       if (inventory.availableQty < qty) {
-        console.warn(
-          `[Inventory] Insufficient stock for SKU=${sku}, required=${qty}, available=${inventory.availableQty}`
-        );
+        logger.warn("Inventory stock insufficient", {
+          sku,
+          qty,
+          available: inventory.availableQty,
+        });
         continue;
       }
 
@@ -40,9 +43,15 @@ const handleOrderCreated = async (items) => {
         inventory.reservedQty + qty
       );
 
-      console.log(`[Inventory] Reserved ${qty} units for SKU=${sku}`);
+      logger.info("Inventory reserved", {
+        sku,
+        qty,
+      });
     } catch (err) {
-      console.error(`[Inventory] Failed to update SKU=${item.sku}`, err);
+      logger.error("Inventory update failed", {
+        error: err.message,
+      });
+
       throw err; // force retry of entire message
     }
   }
@@ -55,7 +64,9 @@ const handleOrderCancelled = async (items) => {
 
       const inventory = await inventoryRepo.findBySku(sku);
       if (!inventory) {
-        console.warn(`[Inventory] No inventory found for SKU=${sku}`);
+        logger.warn("Inventory SKU not found", {
+          sku,
+        });
         continue;
       }
 
@@ -65,9 +76,15 @@ const handleOrderCancelled = async (items) => {
         Math.max(inventory.reservedQty - qty, 0)
       );
 
-      console.log(`[Inventory] Released ${qty} units for SKU=${sku}`);
+      logger.info("Inventory released", {
+        sku,
+        qty,
+      });
     } catch (err) {
-      console.error(`[Inventory] Failed to update SKU=${item.sku}`, err);
+      logger.error("Inventory update failed", {
+        error: err.message,
+      });
+
       throw err; // force retry of entire message
     }
   }
@@ -96,15 +113,19 @@ const startConsumer = async () => {
       eachMessage: async ({ topic, partition, message }) => {
         // Mongo not ready → pause consumption
         if (mongoose.connection.readyState !== 1) {
-          console.warn("[Inventory] Mongo not connected, pausing consumption");
+          logger.warn("Mongo unavailable, pausing consumption", {
+            topic,
+            partition,
+          });
 
           consumer.pause([{ topic, partitions: [partition] }]);
 
           setTimeout(() => {
             if (mongoose.connection.readyState === 1) {
-              console.log(
-                "[Inventory] Mongo reconnected, resuming consumption"
-              );
+              logger.info("Mongo reconnected, resuming consumption", {
+                topic,
+                partition,
+              });
               consumer.resume([{ topic, partitions: [partition] }]);
             }
           }, 5000);
@@ -114,8 +135,19 @@ const startConsumer = async () => {
 
         const event = JSON.parse(message.value.toString());
 
+        logger.info("Kafka event received", {
+          eventType: event.eventType,
+          topic,
+          partition,
+          offset: message.offset,
+        });
+
         if (!isValidEvent(event)) {
-          console.error("[Kafka] Invalid event, skipping");
+          logger.error("Kafka skipping invalid event", {
+            eventType: event.eventType,
+            topic,
+            partition,
+          });
           return;
         }
 

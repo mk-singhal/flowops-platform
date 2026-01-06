@@ -1,4 +1,5 @@
 const { Kafka } = require("kafkajs");
+const logger = require("../utils/logger");
 
 const kafka = new Kafka({
   clientId: "order-service",
@@ -28,7 +29,10 @@ const connectProducer = async () => {
 
 const publishEvent = async (event) => {
   if (!isProducerConnected) {
-    console.warn("[Kafka] Producer not connected, skipping event:", event.eventType);
+    console.warn(
+      "[Kafka] Producer not connected, skipping event:",
+      event.eventType
+    );
     return;
   }
 
@@ -43,9 +47,18 @@ const publishEvent = async (event) => {
       ],
     });
 
-    console.log("[Kafka] Event published:", event.eventType);
+    logger.info("Kafka event published", {
+      eventType: event.eventType,
+      eventId: event.eventId,
+      orderId: event?.payload?.orderId,
+    });
   } catch (err) {
-    console.error("[Kafka] Failed to publish event", err);
+    logger.error("Kafka publish failed (fail-open)", {
+      eventType: event.eventType,
+      eventId: event.eventId,
+      orderId: event?.payload?.orderId,
+      error: err.message,
+    });
   }
 };
 
