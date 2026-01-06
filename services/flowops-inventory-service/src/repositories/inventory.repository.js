@@ -4,6 +4,17 @@ const findBySku = (sku) => {
   return Inventory.findOne({ sku });
 };
 
+const findAll = async ({ skip, limit }) => {
+  return Inventory.find({})
+    .sort({ updatedAt: -1 })
+    .skip(skip)
+    .limit(limit);
+};
+
+const countAll = async () => {
+  return Inventory.countDocuments();
+};
+
 const createInventory = ({ sku, availableQty, reservedQty }) => {
   return Inventory.create({
     sku,
@@ -22,6 +33,8 @@ const updateQuantities = (sku, availableQty, reservedQty) => {
 
 module.exports = {
   findBySku,
+  findAll,
+  countAll,
   createInventory,
   updateQuantities,
 };

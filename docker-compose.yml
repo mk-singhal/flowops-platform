@@ -65,6 +65,8 @@ services:
     container_name: flowops-inventory-service
     ports:
       - "4002:4002"
+    environment:
+      PORT: 4002
     env_file:
       - ./services/flowops-inventory-service/.env
     depends_on:

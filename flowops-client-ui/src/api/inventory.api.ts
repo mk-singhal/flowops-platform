@@ -6,7 +6,6 @@ export type InventoryItem = {
   sku: string;
   availableQty: number;
   reservedQty: number;
-  totalQty: number;
   updatedAt: string;
 };
 
@@ -26,7 +25,7 @@ export const fetchInventory = async (
   const response = await axios.get(`${API_BASE}/inventory`, {
     params: { page, limit },
   });
-
+  
   return response.data;
 };
 
