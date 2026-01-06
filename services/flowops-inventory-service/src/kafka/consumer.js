@@ -2,6 +2,7 @@ const { Kafka } = require("kafkajs");
 const inventoryRepo = require("../repositories/inventory.repository");
 const mongoose = require("mongoose");
 const logger = require("../utils/logger");
+let isPaused = false;
 
 const kafka = new Kafka({
   clientId: "inventory-service",
@@ -106,30 +107,22 @@ const startConsumer = async () => {
 
     await consumer.subscribe({
       topic: "order-events",
-      fromBeginning: true,
     });
 
     await consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
         // Mongo not ready → pause consumption
         if (mongoose.connection.readyState !== 1) {
-          logger.warn("Mongo unavailable, pausing consumption", {
-            topic,
-            partition,
-          });
+          if (!isPaused) {
+            logger.warn("Mongo unavailable, pausing consumption", {
+              topic,
+              partition,
+            });
 
-          consumer.pause([{ topic, partitions: [partition] }]);
-
-          setTimeout(() => {
-            if (mongoose.connection.readyState === 1) {
-              logger.info("Mongo reconnected, resuming consumption", {
-                topic,
-                partition,
-              });
-              consumer.resume([{ topic, partitions: [partition] }]);
-            }
-          }, 5000);
-
+            consumer.pause([{ topic, partitions: [partition] }]);
+            isPaused = true;
+            throw new Error("Mongo unavailable");
+          }
           return;
         }
 
@@ -169,6 +162,15 @@ const startConsumer = async () => {
     console.error("[Kafka] Inventory consumer failed to start", err);
   }
 };
+
+mongoose.connection.on("connected", () => {
+  if (isPaused) {
+    logger.info("Mongo reconnected, resuming Kafka consumption");
+
+    consumer.resume([{ topic: "order-events", partitions: [0] }]);
+    isPaused = false;
+  }
+});
 
 process.on("SIGTERM", async () => {
   console.log("[Kafka] Inventory consumer shutting down...");

@@ -20,4 +20,13 @@ const connectMongo = async () => {
   }
 };
 
+mongoose.connection.on("connected", () => {
+  console.log("[Inventory] Mongo connected");
+});
+
+mongoose.connection.on("disconnected", () => {
+  console.log("[Inventory] Mongo disconnected");
+});
+
+
 module.exports = connectMongo;
